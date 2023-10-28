@@ -34,10 +34,34 @@ npx hardhat test
 
 Les tests couvrent les aspects suivants du contrat intelligent de vote :
 
-1. Ajout d'un électeur et vérification de son droit de vote.
-2. Modification du workflow.
-3. Ajout d'une proposition et vérification de son existence.
-4. Émission d'un vote.
-5. Récupération de l'ID de la proposition gagnante.
-6. Garantir qu'une adresse ne peut pas voter deux fois.
-7. Vérification de l'émission d'un événement lorsqu'une proposition est ajoutée.
+    DEPLOIEMENT
+      ✔ Le owner est bien le titulaire (660ms)
+    MODIFIER ONLYVOTERS
+      ✔ Doit être un voter
+    REGISTRATION
+      ✔ Doit pouvoir ajouter un voter en fonction en l'adresse
+      ✔ Ne doit pas pouvoir ajouter deux fois le même voter
+      ✔ Ne doit pas pouvoir ajouter de voter hors période RegisteringVoters
+      ✔ Doit émettre un évenement lorsqu'un voter est ajouté
+    PROPOSAL
+      ✔ Doit pouvoir ajouter une proposal
+      ✔ Ne doit pas pouvoir ajouter de voter hors période ProposalsRegistrationStarted
+      ✔ Ne doit pas pouvoir ajouter de proposal vide
+      ✔ Doit émettre un évenement lorsqu'une proposal est ajouté
+    VOTE
+      ✔ Doit pouvoir voter
+      ✔ Ne doit pas pouvoir ajouter de voter hors période VotingSessionStarted
+      ✔ Ne doit pas pouvoir voter deux fois
+      ✔ Ne doit pas pouvoir voter pour une proposal qui n'existe pas
+      ✔ Doit pouvoir enregistrer l'ID du vote au voter
+      ✔ Doit pouvoir enregistrer le voter comme ayant déjà voter
+      ✔ Doit émettre un évenement lorsqu'une vote est ajouté
+    STATE
+      ✔ Doit être au workflow RegisteringVoters
+      ✔ Doit être au workflow ProposalsRegistrationStarted
+      ✔ Doit être au workflow ProposalsRegistrationEnded
+      ✔ Doit être au workflow VotingSessionStarted
+      ✔ Doit être au workflow VotingSessionEnded
+      ✔ Doit être au workflow VotesTallied
+    TALLYVOTES
+      ✔ Doit récupérer l'ID de la proposal winner
