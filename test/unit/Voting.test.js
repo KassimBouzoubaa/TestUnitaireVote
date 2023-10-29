@@ -13,13 +13,14 @@ describe("Voting tests", function () {
     const proposalId = 1;
     return { voting, owner, voter1, proposal, proposalId };
   }
-
+  beforeEach(async function () {
+    Object.assign(this, await loadFixture(deployContract));
+  });
   // ::::::::::::: DEPLOIMENT ::::::::::::: //
 
   describe("DEPLOIEMENT", function () {
     it("Le owner est bien le titulaire", async function () {
-      const { voting, owner } = await loadFixture(deployContract);
-      expect((await voting.owner()) === owner.address);
+      expect((await this.voting.owner()) === this.owner.address);
     });
   });
 
@@ -27,8 +28,7 @@ describe("Voting tests", function () {
 
   describe("MODIFIER ONLYVOTERS", function () {
     it("Doit être un voter", async function () {
-      const { voting, owner } = await loadFixture(deployContract);
-      await expect(voting.getVoter(owner)).to.be.revertedWith(
+      await expect(this.voting.getVoter(this.owner)).to.be.revertedWith(
         "You're not a voter"
       );
     });
@@ -38,32 +38,27 @@ describe("Voting tests", function () {
 
   describe("REGISTRATION", function () {
     it("Doit pouvoir ajouter un voter en fonction en l'adresse", async function () {
-      const { voting, owner } = await loadFixture(deployContract);
-      await voting.addVoter(owner);
-      const voter = await voting.getVoter(owner.address);
+      await this.voting.addVoter(this.owner);
+      const voter = await this.voting.getVoter(this.owner.address);
 
       expect(voter.isRegistered).to.be.true;
     });
     it("Ne doit pas pouvoir ajouter deux fois le même voter", async function () {
-      const { voting, owner } = await loadFixture(deployContract);
-      await voting.addVoter(owner);
-      await expect(voting.addVoter(owner)).to.be.revertedWith(
+      await this.voting.addVoter(this.owner);
+      await expect(this.voting.addVoter(this.owner)).to.be.revertedWith(
         "Already registered"
       );
     });
     it("Ne doit pas pouvoir ajouter de voter hors période RegisteringVoters", async function () {
-      const { voting, owner } = await loadFixture(deployContract);
-      await voting.startProposalsRegistering();
-      await expect(voting.addVoter(owner)).to.be.revertedWith(
+      await this.voting.startProposalsRegistering();
+      await expect(this.voting.addVoter(this.owner)).to.be.revertedWith(
         "Voters registration is not open yet"
       );
     });
     it("Doit émettre un évenement lorsqu'un voter est ajouté", async function () {
-      const { voting, owner } = await loadFixture(deployContract);
-
-      expect(await voting.addVoter(owner))
-        .to.emit(voting, "VoterRegistered")
-        .withArgs(owner.address);
+      expect(await this.voting.addVoter(this.owner))
+        .to.emit(this.voting, "VoterRegistered")
+        .withArgs(this.owner.address);
     });
   });
 
@@ -71,44 +66,37 @@ describe("Voting tests", function () {
 
   describe("PROPOSAL", function () {
     it("Doit pouvoir ajouter une proposal", async function () {
-      const { voting, owner, proposal, proposalId } = await loadFixture(
-        deployContract
-      );
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
-      await voting.addProposal(proposal);
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
+      await this.voting.addProposal(this.proposal);
 
       expect(
-        (await voting.getOneProposal(proposalId).description) === proposal
+        (await this.voting.getOneProposal(this.proposalId).description) ===
+          this.proposal
       );
     });
     it("Ne doit pas pouvoir ajouter de voter hors période ProposalsRegistrationStarted", async function () {
-      const { voting, owner, proposal } = await loadFixture(deployContract);
-      await voting.addVoter(owner);
+      await this.voting.addVoter(this.owner);
 
-      await expect(voting.addProposal(proposal)).to.be.revertedWith(
+      await expect(this.voting.addProposal(this.proposal)).to.be.revertedWith(
         "Proposals are not allowed yet"
       );
     });
     it("Ne doit pas pouvoir ajouter de proposal vide", async function () {
-      const { voting, owner } = await loadFixture(deployContract);
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
 
-      await expect(voting.addProposal("")).to.be.revertedWith(
+      await expect(this.voting.addProposal("")).to.be.revertedWith(
         "Vous ne pouvez pas ne rien proposer"
       );
     });
     it("Doit émettre un évenement lorsqu'une proposal est ajouté", async function () {
-      const { voting, owner, proposal, proposalId } = await loadFixture(
-        deployContract
-      );
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
 
-      expect(await voting.addProposal(proposal))
-        .to.emit(voting, "ProposalRegistered")
-        .withArgs(proposalId);
+      expect(await this.voting.addProposal(this.proposal))
+        .to.emit(this.voting, "ProposalRegistered")
+        .withArgs(this.proposalId);
     });
   });
 
@@ -116,106 +104,85 @@ describe("Voting tests", function () {
 
   describe("VOTE", function () {
     it("Doit pouvoir voter", async function () {
-      const { voting, owner, proposal, proposalId } = await loadFixture(
-        deployContract
-      );
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
-      await voting.addProposal(proposal);
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-      await voting.setVote(proposalId);
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
+      await this.voting.addProposal(this.proposal);
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
+      await this.voting.setVote(this.proposalId);
 
       expect(
-        (await voting.getOneProposal(proposalId).voteCount) === proposalId
+        (await this.voting.getOneProposal(this.proposalId).voteCount) === this.proposalId
       );
     });
     it("Ne doit pas pouvoir ajouter de voter hors période VotingSessionStarted", async function () {
-      const { voting, owner, proposalId } = await loadFixture(deployContract);
-      await voting.addVoter(owner);
+      await this.voting.addVoter(this.owner);
 
-      await expect(voting.setVote(proposalId)).to.be.revertedWith(
+      await expect(this.voting.setVote(this.proposalId)).to.be.revertedWith(
         "Voting session havent started yet"
       );
     });
     it("Ne doit pas pouvoir voter deux fois", async function () {
-      const { voting, owner, proposal, proposalId } = await loadFixture(
-        deployContract
-      );
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
-      await voting.addProposal(proposal);
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-      await voting.setVote(proposalId);
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
+      await this.voting.addProposal(this.proposal);
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
+      await this.voting.setVote(this.proposalId);
 
-      await expect(voting.setVote(proposalId)).to.be.revertedWith(
+      await expect(this.voting.setVote(this.proposalId)).to.be.revertedWith(
         "You have already voted"
       );
     });
     it("Ne doit pas pouvoir voter pour une proposal qui n'existe pas", async function () {
-      const { voting, owner, proposal } = await loadFixture(deployContract);
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
-      await voting.addProposal(proposal);
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
+      await this.voting.addProposal(this.proposal);
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
 
-      await expect(voting.setVote(3)).to.be.revertedWith("Proposal not found");
+      await expect(this.voting.setVote(3)).to.be.revertedWith("Proposal not found");
     });
     it("Doit pouvoir enregistrer l'ID du vote au voter", async function () {
-      const { voting, owner, proposal, proposalId } = await loadFixture(
-        deployContract
-      );
-
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
-      await voting.addProposal(proposal);
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-      await voting.setVote(proposalId);
-      const voter = await voting.getVoter(owner);
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
+      await this.voting.addProposal(this.proposal);
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
+      await this.voting.setVote(this.proposalId);
+      const voter = await this.voting.getVoter(this.owner);
       const votedProposalId = BigInt(voter.votedProposalId);
 
-      expect(votedProposalId).to.equal(proposalId);
+      expect(votedProposalId).to.equal(this.proposalId);
     });
 
     it("Doit pouvoir enregistrer le voter comme ayant déjà voter", async function () {
-      const { voting, owner, proposal, proposalId } = await loadFixture(
-        deployContract
-      );
-
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
-      await voting.addProposal(proposal);
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-      await voting.setVote(proposalId);
-      const voter = await voting.getVoter(owner);
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
+      await this.voting.addProposal(this.proposal);
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
+      await this.voting.setVote(this.proposalId);
+      const voter = await this.voting.getVoter(this.owner);
 
       expect(voter.hasVoted).to.be.true;
     });
     it("Doit émettre un évenement lorsqu'une vote est ajouté", async function () {
-      const { voting, owner, proposal, proposalId } = await loadFixture(
-        deployContract
-      );
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
+      await this.voting.addProposal(this.proposal);
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
 
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
-      await voting.addProposal(proposal);
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-
-      expect(await voting.setVote(proposalId))
-        .to.emit(voting, "Voted")
-        .withArgs(owner, proposalId);
+      expect(await this.voting.setVote(this.proposalId))
+        .to.emit(this.voting, "Voted")
+        .withArgs(this.owner, this.proposalId);
     });
   });
   // ::::::::::::: STATE ::::::::::::: //
   describe("STATE", function () {
     it("Doit être au workflow RegisteringVoters", async function () {
-      const { voting } = await loadFixture(deployContract);
-      const workflowStatus = await voting.workflowStatus();
+      const workflowStatus = await this.voting.workflowStatus();
       assert.equal(
         workflowStatus,
         0,
@@ -223,9 +190,8 @@ describe("Voting tests", function () {
       );
     });
     it("Doit être au workflow ProposalsRegistrationStarted", async function () {
-      const { voting } = await loadFixture(deployContract);
-      await voting.startProposalsRegistering();
-      const workflowStatus = await voting.workflowStatus();
+      await this.voting.startProposalsRegistering();
+      const workflowStatus = await this.voting.workflowStatus();
       assert.equal(
         workflowStatus,
         1,
@@ -233,10 +199,9 @@ describe("Voting tests", function () {
       );
     });
     it("Doit être au workflow ProposalsRegistrationEnded", async function () {
-      const { voting } = await loadFixture(deployContract);
-      await voting.startProposalsRegistering();
-      await voting.endProposalsRegistering();
-      const workflowStatus = await voting.workflowStatus();
+      await this.voting.startProposalsRegistering();
+      await this.voting.endProposalsRegistering();
+      const workflowStatus = await this.voting.workflowStatus();
 
       assert.equal(
         workflowStatus,
@@ -245,11 +210,10 @@ describe("Voting tests", function () {
       );
     });
     it("Doit être au workflow VotingSessionStarted", async function () {
-      const { voting } = await loadFixture(deployContract);
-      await voting.startProposalsRegistering();
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-      const workflowStatus = await voting.workflowStatus();
+      await this.voting.startProposalsRegistering();
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
+      const workflowStatus = await this.voting.workflowStatus();
 
       assert.equal(
         workflowStatus,
@@ -258,12 +222,11 @@ describe("Voting tests", function () {
       );
     });
     it("Doit être au workflow VotingSessionEnded", async function () {
-      const { voting } = await loadFixture(deployContract);
-      await voting.startProposalsRegistering();
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-      await voting.endVotingSession();
-      const workflowStatus = await voting.workflowStatus();
+      await this.voting.startProposalsRegistering();
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
+      await this.voting.endVotingSession();
+      const workflowStatus = await this.voting.workflowStatus();
 
       assert.equal(
         workflowStatus,
@@ -272,13 +235,12 @@ describe("Voting tests", function () {
       );
     });
     it("Doit être au workflow VotesTallied", async function () {
-      const { voting } = await loadFixture(deployContract);
-      await voting.startProposalsRegistering();
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-      await voting.endVotingSession();
-      await voting.tallyVotes();
-      const workflowStatus = await voting.workflowStatus();
+      await this.voting.startProposalsRegistering();
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
+      await this.voting.endVotingSession();
+      await this.voting.tallyVotes();
+      const workflowStatus = await this.voting.workflowStatus();
 
       assert.equal(
         workflowStatus,
@@ -290,20 +252,17 @@ describe("Voting tests", function () {
   // ::::::::::::: TALLYVOTES ::::::::::::: //
   describe("TALLYVOTES", function () {
     it("Doit récupérer l'ID de la proposal winner", async function () {
-      const { voting, owner, proposal, proposalId } = await loadFixture(
-        deployContract
-      );
       const secondProposal = "Je préfère Hardhat";
-      await voting.addVoter(owner);
-      await voting.startProposalsRegistering();
-      await voting.addProposal(proposal);
-      await voting.addProposal(secondProposal);
-      await voting.endProposalsRegistering();
-      await voting.startVotingSession();
-      await voting.setVote(proposalId);
-      await voting.endVotingSession();
-      await voting.tallyVotes();
-      expect(await voting.winningProposalID()).to.equal(proposalId);
+      await this.voting.addVoter(this.owner);
+      await this.voting.startProposalsRegistering();
+      await this.voting.addProposal(this.proposal);
+      await this.voting.addProposal(secondProposal);
+      await this.voting.endProposalsRegistering();
+      await this.voting.startVotingSession();
+      await this.voting.setVote(this.proposalId);
+      await this.voting.endVotingSession();
+      await this.voting.tallyVotes();
+      expect(await this.voting.winningProposalID()).to.equal(this.proposalId);
     });
   });
 });
